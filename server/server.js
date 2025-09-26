@@ -44,13 +44,15 @@ app.use('/api/orders', require('./routes/orders'));
 // --- 🔹 Serve uploads with CORS headers ---
 app.use(
   '/uploads',
-  cors(corsOptions),
+  express.static(path.join(__dirname, 'public', 'uploads')),
   (req, res, next) => {
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    // Allow cross-origin image loading
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); // COEP
+    res.setHeader('Access-Control-Allow-Origin', '*'); // CORS
     next();
-  },
-  express.static(path.join(__dirname, 'public', 'uploads'))
+  }
 );
+
 
 // --- 🔹 Health Check ---
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
