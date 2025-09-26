@@ -43,7 +43,7 @@ export default function CustomerMenu() {
     );
     setCategories(cats);
   } catch (e) {
-    console.error("❌ Fetch menu failed:", e);
+    console.error("❌ Fetch menu failed:");
     toast.error('Failed to fetch menu');
   }
 };

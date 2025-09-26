@@ -13,17 +13,25 @@ const app = express();
 app.use(helmet());
 app.use(express.json({ limit: '5mb' }));
 
-// --- 🔹 CORS ---
-const allowedOrigins = process.env.FRONTEND_URL
-  ? [process.env.FRONTEND_URL]
-  : ['http://localhost:3000'];
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://restaurant-66h1-qbmbu1eiq-mohammed-zaids-projects-e928b713.vercel.app'
+];
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS: ' + origin));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
+
 app.use(cors(corsOptions));
+
 
 // --- 🔹 Connect MongoDB ---
 connectDB(process.env.MONGO_URI);
