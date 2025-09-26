@@ -14,40 +14,39 @@ export default function CustomerMenu() {
   useEffect(() => { fetchMenu(); }, []);
 
   const fetchMenu = async () => {
-  try {
-    const res = await API.get('/menu');
-    console.log("API response:", res.data);
+    try {
+      const res = await API.get('/menu');
+      console.log("API response:", res.data);
 
-    // Normalize the response to always be an array
-    let menuItems = [];
+      // Normalize the response to always be an array
+      let menuItems = [];
 
-    if (Array.isArray(res.data)) {
-      menuItems = res.data;
-    } else if (res.data && Array.isArray(res.data.menu)) {
-      menuItems = res.data.menu;
-    } else if (res.data && Array.isArray(res.data.items)) {
-      menuItems = res.data.items;
-    } else {
-      console.warn("⚠️ Unexpected API format, setting empty menu:", res.data);
-      menuItems = [];
+      if (Array.isArray(res.data)) {
+        menuItems = res.data;
+      } else if (res.data && Array.isArray(res.data.menu)) {
+        menuItems = res.data.menu;
+      } else if (res.data && Array.isArray(res.data.items)) {
+        menuItems = res.data.items;
+      } else {
+        console.warn("⚠️ Unexpected API format, setting empty menu:", res.data);
+        menuItems = [];
+      }
+
+      // Filter out invalid items just in case
+      menuItems = menuItems.filter(item => item && item.name);
+
+      setItems(menuItems);
+
+      // Extract categories safely
+      const cats = Array.from(
+        new Set(menuItems.map(item => item.category).filter(Boolean))
+      );
+      setCategories(cats);
+    } catch (e) {
+      console.error("❌ Fetch menu failed:", e);
+      toast.error('Failed to fetch menu');
     }
-
-    // Filter out invalid items just in case
-    menuItems = menuItems.filter(item => item && item.name);
-
-    setItems(menuItems);
-
-    // Extract categories safely
-    const cats = Array.from(
-      new Set(menuItems.map(item => item.category).filter(Boolean))
-    );
-    setCategories(cats);
-  } catch (e) {
-    console.error("❌ Fetch menu failed:");
-    toast.error('Failed to fetch menu');
-  }
-};
-
+  };
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
@@ -148,15 +147,27 @@ export default function CustomerMenu() {
               whileHover={{ scale: 1.02 }}
             >
               <div className="h-32 sm:h-40 md:h-48 w-full overflow-hidden">
-                {it.image ? (
+                {it.imageUrl ? (
                   <img
-                    src={`${process.env.REACT_APP_API_URL}${it.image}`}
+                    src={it.imageUrl}
                     alt={it.name}
                     className="object-cover w-full h-full"
+                    onError={(e) => {
+                      // Fallback to a placeholder if image fails to load
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
+                    }}
                   />
                 ) : (
                   <div className="bg-gray-200 w-full h-full flex items-center justify-center text-gray-400">
-                    No Image
+                    <div className="text-center">
+                      <div className="bg-gray-300 rounded-full p-3 inline-block">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                      </div>
+                      <p className="mt-2 text-sm">No Image</p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -192,7 +203,13 @@ export default function CustomerMenu() {
             </motion.div>
           ))
         ) : (
-          <p className="col-span-full text-center text-gray-500">No items found</p>
+          <div className="col-span-full text-center py-12">
+            <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No items found</h3>
+            <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filter to find what you're looking for.</p>
+          </div>
         )}
       </div>
     </motion.div>

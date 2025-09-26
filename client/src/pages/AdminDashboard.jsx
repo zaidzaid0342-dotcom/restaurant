@@ -19,21 +19,19 @@ import {
   FiClock,
   FiHome,
   FiCoffee,
-
 } from 'react-icons/fi';
 import { FaWhatsapp } from "react-icons/fa";
-
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [items, setItems] = useState([]);
-  const [file, setFile] = useState(null);
   const [form, setForm] = useState({
     name: '',
     description: '',
     price: '',
     category: '',
     available: true,
+    imageUrl: '', // Added imageUrl field
   });
   const [editItem, setEditItem] = useState(null);
   const [search, setSearch] = useState('');
@@ -83,31 +81,35 @@ export default function AdminDashboard() {
 
   const submitMenu = async (e) => {
     e.preventDefault();
-    const data = new FormData();
-    data.append('name', form.name);
-    data.append('description', form.description);
-    data.append('price', form.price);
-    data.append('category', form.category);
-    data.append('available', form.available);
-    if (file) data.append('image', file);
-
+    
     try {
+      const payload = {
+        name: form.name,
+        description: form.description,
+        price: form.price,
+        category: form.category,
+        available: form.available,
+        imageUrl: form.imageUrl || null,
+      };
+
       if (editItem) {
-        await API.put(`/menu/${editItem._id}`, data);
+        await API.put(`/menu/${editItem._id}`, payload);
         toast.success('Menu item updated');
         setEditItem(null);
       } else {
-        await API.post('/menu', data);
+        await API.post('/menu', payload);
         toast.success('Menu item added');
       }
+      
       setForm({
         name: '',
         description: '',
         price: '',
         category: '',
         available: true,
+        imageUrl: '',
       });
-      setFile(null);
+      
       fetchMenu();
     } catch (e) {
       toast.error('Failed to save menu item');
@@ -122,8 +124,8 @@ export default function AdminDashboard() {
       price: item.price,
       category: item.category,
       available: item.available ?? true,
+      imageUrl: item.imageUrl || '',
     });
-    setFile(null);
   };
 
   const cancelEdit = () => {
@@ -134,8 +136,8 @@ export default function AdminDashboard() {
       price: '',
       category: '',
       available: true,
+      imageUrl: '',
     });
-    setFile(null);
   };
 
   const confirmDelete = async (id) => {
@@ -355,6 +357,21 @@ export default function AdminDashboard() {
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                       />
                     </div>
+                    
+                    {/* Image URL Input */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                      <input
+                        placeholder="https://example.com/image.jpg"
+                        value={form.imageUrl}
+                        onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                      />
+                      <p className="mt-1 text-sm text-gray-500">
+                        Enter a URL for the product image. Leave empty to use a placeholder.
+                      </p>
+                    </div>
+                    
                     <div className="flex items-center">
                       <input
                         type="checkbox"
@@ -367,14 +384,7 @@ export default function AdminDashboard() {
                         Available
                       </label>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
-                      <input
-                        type="file"
-                        onChange={(e) => setFile(e.target.files[0])}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                      />
-                    </div>
+                    
                     <div className="md:col-span-2 flex gap-3">
                       <button
                         type="submit"
@@ -405,11 +415,16 @@ export default function AdminDashboard() {
                         className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
                       >
                         <div className="h-48 overflow-hidden bg-gray-100">
-                          {item.image ? (
+                          {item.imageUrl ? (
                             <img
-                              src={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${item.image}`}
+                              src={item.imageUrl}
                               alt={item.name}
                               className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                              onError={(e) => {
+                                // Fallback to a placeholder if image fails to load
+                                e.target.onerror = null;
+                                e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
+                              }}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400">

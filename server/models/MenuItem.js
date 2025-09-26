@@ -1,3 +1,4 @@
+// backend/models/MenuItem.js
 const mongoose = require('mongoose');
 
 const MenuItemSchema = new mongoose.Schema({
@@ -5,7 +6,7 @@ const MenuItemSchema = new mongoose.Schema({
   description: String,
   price: Number,
   category: String,
-  image: String,
+  imageUrl: String, // Only store the URL
   available: {
     type: Boolean,
     default: true
