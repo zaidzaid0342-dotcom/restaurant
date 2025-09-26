@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const connectDB = require('./config/db');
-const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -32,7 +31,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-
 // --- 🔹 Connect MongoDB ---
 connectDB(process.env.MONGO_URI);
 
@@ -40,19 +38,6 @@ connectDB(process.env.MONGO_URI);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/orders', require('./routes/orders'));
-
-// --- 🔹 Serve uploads with CORS headers ---
-app.use(
-  '/uploads',
-  express.static(path.join(__dirname, 'public', 'uploads')),
-  (req, res, next) => {
-    // Allow cross-origin image loading
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); // COEP
-    res.setHeader('Access-Control-Allow-Origin', '*'); // CORS
-    next();
-  }
-);
-
 
 // --- 🔹 Health Check ---
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
@@ -90,4 +75,3 @@ app.use((err, req, res, next) => {
 // --- 🔹 Start server ---
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`🚀 Backend server running on port ${PORT}`));
-
