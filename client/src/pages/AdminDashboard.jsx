@@ -599,7 +599,7 @@ export default function AdminDashboard() {
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             Status
                           </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider hidden lg:table-cell">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             Payment
                           </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider hidden sm:table-cell">
@@ -684,7 +684,7 @@ export default function AdminDashboard() {
                                   <span className="ml-1 capitalize">{order.status}</span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                              <td className="px-6 py-4 whitespace-nowrap">
                                 <button
                                   onClick={() => togglePaid(order._id, order.paid)}
                                   className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
@@ -712,7 +712,7 @@ export default function AdminDashboard() {
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-col sm:flex-row gap-1">
                                   <button
                                     onClick={() => toggleOrderDetails(order._id)}
                                     className="text-slate-500 hover:text-slate-700 p-1 rounded-full hover:bg-slate-100"
