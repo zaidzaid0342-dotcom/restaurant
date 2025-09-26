@@ -14,7 +14,8 @@ app.use(express.json({ limit: '5mb' }));
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://restaurant-66h1-qbmbu1eiq-mohammed-zaids-projects-e928b713.vercel.app'
+  'https://restaurant-66h1.vercel.app',
+  'https://restaurant-1-cyf4.onrender.com' // Add your Render backend URL
 ];
 
 const corsOptions = {
