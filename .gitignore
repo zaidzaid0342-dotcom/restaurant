@@ -45,8 +45,8 @@ ehthumbs.db
 Thumbs.db
 
 # Uploads (if storing locally)
-public/uploads/*
-!public/uploads/.gitkeep
+
+
 scripts/*
 !scripts/keep-this.js
 seedAdmin.js
