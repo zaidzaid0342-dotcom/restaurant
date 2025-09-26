@@ -18,7 +18,7 @@ exports.place = async (req, res) => {
     const {
       orderType,
       tableNumber,
-       whatsappNumber,
+      whatsappNumber,
       customerName,
       customerPhone,
       deliveryAddress,
@@ -46,7 +46,6 @@ exports.place = async (req, res) => {
       trackingId,
       orderType,
       tableNumber: orderType === 'dine-in' ? tableNumber : null,
-      //whatsappNumber: orderType=='dine-in'? whatsappNumber:null,
       customerName: orderType === 'home-delivery' ? customerName : null,
       customerPhone: orderType === 'home-delivery' ? customerPhone : null,
       deliveryAddress: orderType === 'home-delivery' ? deliveryAddress : null,
@@ -68,15 +67,18 @@ exports.place = async (req, res) => {
   }
 };
 
-// (rest of your controller remains same: list, updateStatus, getById, getByTrackingId)
-
-
-// Admin: list all orders
+// Admin: list all orders - sorted by createdAt descending (newest first)
 exports.list = async (req, res) => {
   try {
+    // Explicitly sort by createdAt descending to ensure newest orders appear first
     const orders = await Order.find()
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1 }) // This ensures LIFO ordering
       .populate('items.menuItem');
+    
+    // Log to verify sorting (for debugging)
+    console.log('Orders sorted by createdAt (newest first):', 
+      orders.map(o => ({ id: o._id, trackingId: o.trackingId, createdAt: o.createdAt })));
+    
     res.json(orders);
   } catch (err) {
     console.error(err);
@@ -115,7 +117,7 @@ exports.updateStatus = async (req, res) => {
 
     if (!order) return res.status(404).json({ msg: 'Order not found' });
 
-    // 🔔 Notify clients in real-time (if using websockets)
+    // Notify clients in real-time (if using websockets)
     const io = req.app.get('io');
     if (io) io.emit('orderUpdated', order);
 
@@ -138,7 +140,8 @@ exports.getById = async (req, res) => {
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 };
-// Get order by WhatsApp number
+
+// Get order by WhatsApp number - return most recent order
 exports.getByWhatsappNumber = async (req, res) => {
   try {
     // Clean the number to remove non-digit characters
@@ -147,7 +150,9 @@ exports.getByWhatsappNumber = async (req, res) => {
     // Find the most recent order with this WhatsApp number
     const order = await Order.findOne({ 
       whatsappNumber: { $regex: cleanNumber, $options: 'i' } 
-    }).sort({ createdAt: -1 });
+    })
+    .sort({ createdAt: -1 }) // Sort to get the most recent order
+    .populate('items.menuItem');
     
     if (!order) {
       return res.status(404).json({ message: 'No orders found for this WhatsApp number' });
@@ -159,7 +164,6 @@ exports.getByWhatsappNumber = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 
 // Get order by Tracking ID (Customer tracking)
 exports.getByTrackingId = async (req, res) => {
