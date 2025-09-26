@@ -14,8 +14,12 @@ app.use(helmet());
 app.use(express.json({ limit: '5mb' }));
 
 // --- 🔹 CORS ---
+const allowedOrigins = process.env.FRONTEND_URL
+  ? [process.env.FRONTEND_URL]
+  : ['http://localhost:3000'];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
@@ -45,25 +49,28 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // --- 🔹 Serve React frontend (for single deployment) ---
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client', 'build')));
+  const frontendBuildPath = path.join(__dirname, 'client', 'build');
+  app.use(express.static(frontendBuildPath));
+
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
   });
 }
 
 // --- 🔹 Socket.IO Setup ---
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: process.env.FRONTEND_URL || 'http://localhost:3000' },
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+  },
 });
 
-// Make io accessible inside controllers
 app.set('io', io);
 
 io.on('connection', (socket) => {
   console.log('🔌 Client connected:', socket.id);
 
-  // Client joins a room for specific order tracking
   socket.on('joinOrder', (orderId) => {
     socket.join(orderId);
     console.log(`📦 Client ${socket.id} joined order room: ${orderId}`);
@@ -72,6 +79,12 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('❌ Client disconnected:', socket.id);
   });
+});
+
+// --- 🔹 Global Error Handling ---
+app.use((err, req, res, next) => {
+  console.error('❌ Error:', err.stack);
+  res.status(500).json({ message: 'Internal Server Error' });
 });
 
 // --- 🔹 Start server ---
