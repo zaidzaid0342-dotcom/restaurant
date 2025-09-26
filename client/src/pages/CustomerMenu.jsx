@@ -126,7 +126,7 @@ export default function CustomerMenu() {
               <div className="h-32 sm:h-40 md:h-48 w-full overflow-hidden">
                 {it.image ? (
                   <img
-                    src={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${it.image}`}
+                    src={`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}${it.image}`}
                     alt={it.name}
                     className="object-cover w-full h-full"
                   />
