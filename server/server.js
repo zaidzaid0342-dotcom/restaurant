@@ -47,16 +47,6 @@ app.use(
 // --- 🔹 Health Check ---
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
-// --- 🔹 Serve React frontend (for single deployment) ---
-if (process.env.NODE_ENV === 'production') {
-  const frontendBuildPath = path.join(__dirname, 'client', 'build');
-  app.use(express.static(frontendBuildPath));
-
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendBuildPath, 'index.html'));
-  });
-}
-
 // --- 🔹 Socket.IO Setup ---
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -89,4 +79,5 @@ app.use((err, req, res, next) => {
 
 // --- 🔹 Start server ---
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Backend server running on port ${PORT}`));
+
