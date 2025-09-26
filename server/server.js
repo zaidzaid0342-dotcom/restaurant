@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 const connectDB = require('./config/db');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -12,25 +13,47 @@ const app = express();
 app.use(helmet());
 app.use(express.json({ limit: '5mb' }));
 
+// --- 🔹 CORS Setup ---
 const allowedOrigins = [
   'http://localhost:3000',
   'https://restaurant-66h1.vercel.app',
-  'https://restaurant-1-cyf4.onrender.com' // Add your Render backend URL
+  'https://restaurant-1-cyf4.onrender.com'
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS: ' + origin));
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Tab-Id', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
+// Enable CORS with options
 app.use(cors(corsOptions));
+
+// Explicitly handle preflight requests
+app.options('*', cors(corsOptions));
+
+// --- 🔹 Serve static uploads if any ---
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    // Allow cross-origin resource sharing for images
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
+  express.static(path.join(__dirname, 'public', 'uploads'))
+);
 
 // --- 🔹 Connect MongoDB ---
 connectDB(process.env.MONGO_URI);
@@ -48,7 +71,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true,
   },
 });
 
