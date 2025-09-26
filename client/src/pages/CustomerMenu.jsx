@@ -14,16 +14,40 @@ export default function CustomerMenu() {
   useEffect(() => { fetchMenu(); }, []);
 
   const fetchMenu = async () => {
-    try {
-      const res = await API.get('/menu');
-      setItems(res.data);
-      const cats = Array.from(new Set(res.data.map(item => item.category).filter(Boolean)));
-      setCategories(cats);
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to fetch menu');
+  try {
+    const res = await API.get('/menu');
+    console.log("API response:", res.data);
+
+    // Normalize the response to always be an array
+    let menuItems = [];
+
+    if (Array.isArray(res.data)) {
+      menuItems = res.data;
+    } else if (res.data && Array.isArray(res.data.menu)) {
+      menuItems = res.data.menu;
+    } else if (res.data && Array.isArray(res.data.items)) {
+      menuItems = res.data.items;
+    } else {
+      console.warn("⚠️ Unexpected API format, setting empty menu:", res.data);
+      menuItems = [];
     }
-  };
+
+    // Filter out invalid items just in case
+    menuItems = menuItems.filter(item => item && item.name);
+
+    setItems(menuItems);
+
+    // Extract categories safely
+    const cats = Array.from(
+      new Set(menuItems.map(item => item.category).filter(Boolean))
+    );
+    setCategories(cats);
+  } catch (e) {
+    console.error("❌ Fetch menu failed:", e);
+    toast.error('Failed to fetch menu');
+  }
+};
+
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
