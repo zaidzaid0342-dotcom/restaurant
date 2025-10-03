@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import API from '../api';
 import { motion } from 'framer-motion';
+import { FiRefreshCw } from 'react-icons/fi';
 
 export default function CustomerMenu() {
   const [items, setItems] = useState([]);
@@ -11,30 +12,66 @@ export default function CustomerMenu() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
 
-  useEffect(() => { fetchMenu(); }, []);
+  useEffect(() => {
+    fetchMenu();
+    
+    // Set up real-time updates every 15 seconds
+    const interval = setInterval(() => {
+      fetchMenu(false);
+    }, 15000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
-  const fetchMenu = async () => {
-    setIsLoading(true);
+  const fetchMenu = async (isManual = false) => {
+    if (isManual) setIsRefreshing(true);
+    
     try {
       const res = await API.get('/menu');
       let menuItems = [];
-      if (Array.isArray(res.data)) menuItems = res.data;
-      else if (res.data?.menu) menuItems = res.data.menu;
-      else if (res.data?.items) menuItems = res.data.items;
-      else {
+      
+      if (Array.isArray(res.data)) {
+        menuItems = res.data;
+      } else if (res.data?.menu) {
+        menuItems = res.data.menu;
+      } else if (res.data?.items) {
+        menuItems = res.data.items;
+      } else {
         console.warn("⚠️ Unexpected API format:", res.data);
         menuItems = [];
       }
+      
       menuItems = menuItems.filter(item => item && item.name);
       setItems(menuItems);
+      
       const cats = Array.from(new Set(menuItems.map(item => item.category).filter(Boolean)));
       setCategories(cats);
+      
+      // Update last refresh time
+      setLastUpdated(new Date());
+      
+      if (isManual) {
+        toast.success('Menu refreshed successfully!', {
+          icon: '✅',
+          style: { 
+            borderRadius: '12px', 
+            background: '#1e293b', 
+            color: '#fff',
+            fontWeight: '500'
+          },
+        });
+      }
     } catch (e) {
       console.error("❌ Fetch menu failed:", e);
-      toast.error('Failed to fetch menu');
+      if (isManual) {
+        toast.error('Failed to refresh menu');
+      }
     } finally {
       setIsLoading(false);
+      if (isManual) setIsRefreshing(false);
     }
   };
 
@@ -43,11 +80,29 @@ export default function CustomerMenu() {
   }, [cart]);
 
   const add = (item) => {
-    if (!item.available) return;
+    // Double-check availability before adding to cart
+    if (!item.available) {
+      toast.error(`${item.name} is currently unavailable`, {
+        icon: '❌',
+        style: { 
+          borderRadius: '12px', 
+          background: '#ef4444', 
+          color: '#fff',
+          fontWeight: '500'
+        },
+      });
+      return;
+    }
+    
     const idx = cart.findIndex(c => c._id === item._id);
     const copy = [...cart];
-    if (idx >= 0) copy[idx].qty += 1;
-    else copy.push({ ...item, qty: 1 });
+    
+    if (idx >= 0) {
+      copy[idx].qty += 1;
+    } else {
+      copy.push({ ...item, qty: 1 });
+    }
+    
     setCart(copy);
     toast.success(`${item.name} added to cart!`, {
       icon: '🍽️',
@@ -65,6 +120,23 @@ export default function CustomerMenu() {
     const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Format last updated time
+  const formatLastUpdated = (date) => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return 'Just now';
+    }
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+    }
+    
+    return 'Recently';
+  };
 
   return (
     <motion.div
@@ -111,7 +183,7 @@ export default function CustomerMenu() {
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-50 to-transparent"></div>
         </motion.section>
 
-        {/* Search & Cart */}
+        {/* Search, Refresh & Cart */}
         <motion.header
           className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4"
           initial={{ opacity: 0, y: 20 }}
@@ -130,16 +202,39 @@ export default function CustomerMenu() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <Link
-            to="/cart"
-            className="flex items-center justify-center bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-xl shadow-lg font-medium transition-all duration-300 whitespace-nowrap transform hover:scale-[1.02]"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-            </svg>
-            Cart ({cart.reduce((s, i) => s + i.qty, 0)})
-          </Link>
+          <div className="flex gap-3 w-full sm:w-auto">
+            <button
+              onClick={() => fetchMenu(true)}
+              disabled={isRefreshing}
+              className="flex items-center justify-center bg-white hover:bg-slate-50 text-slate-800 px-4 py-3 rounded-xl shadow font-medium transition-all duration-300 whitespace-nowrap border border-slate-200"
+            >
+              <FiRefreshCw className={`h-5 w-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh Menu'}
+            </button>
+            <Link
+              to="/cart"
+              className="flex items-center justify-center bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-xl shadow-lg font-medium transition-all duration-300 whitespace-nowrap transform hover:scale-[1.02]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+              </svg>
+              Cart ({cart.reduce((s, i) => s + i.qty, 0)})
+            </Link>
+          </div>
         </motion.header>
+
+        {/* Real-time update indicator */}
+        <motion.div
+          className="mb-6 flex items-center text-sm text-slate-500"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+        >
+          <div className="flex items-center">
+            <div className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+            <span>Menu updated {formatLastUpdated(lastUpdated)}</span>
+          </div>
+        </motion.div>
 
         {/* Categories */}
         <motion.div
@@ -195,7 +290,7 @@ export default function CustomerMenu() {
               filteredItems.map((it, index) => (
                 <motion.div
                   key={it._id}
-                  className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 group"
+                  className={`bg-white rounded-2xl shadow-lg border overflow-hidden hover:shadow-xl transition-all duration-300 group ${!it.available ? 'opacity-75' : ''}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * index, duration: 0.4 }}

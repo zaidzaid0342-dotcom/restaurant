@@ -25,6 +25,7 @@ exports.create = async (req, res) => {
       description,
       price,
       category,
+      available,
       imageUrl: imageUrl || null
     });
     
@@ -38,7 +39,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, description, price, category, imageUrl } = req.body;
+    const { name, description, price, category, imageUrl,available } = req.body;
     
     const updateData = { name, description, price, category };
     
