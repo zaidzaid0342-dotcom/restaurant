@@ -90,41 +90,56 @@ export default function AdminDashboard() {
     .reduce((sum, o) => sum + o.total, 0);
 
   const submitMenu = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  try {
+    const payload = {
+      name: form.name,
+      description: form.description,
+      price: Number(form.price),
+      category: form.category,
+      available: form.available,
+      imageUrl: form.imageUrl || null,
+    };
     
-    try {
-      const payload = {
-        name: form.name,
-        description: form.description,
-        price: form.price,
-        category: form.category,
-        available: form.available,
-        imageUrl: form.imageUrl || null,
-      };
-
-      if (editItem) {
-        await API.put(`/menu/${editItem._id}`, payload);
-        toast.success('Menu item updated');
-        setEditItem(null);
-      } else {
-        await API.post('/menu', payload);
-        toast.success('Menu item added');
-      }
-      
-      setForm({
-        name: '',
-        description: '',
-        price: '',
-        category: '',
-        available: true,
-        imageUrl: '',
-      });
-      
-      fetchMenu();
-    } catch (e) {
-      toast.error('Failed to save menu item');
+    console.log('Sending payload:', JSON.stringify(payload, null, 2));
+    
+    if (editItem) {
+      await API.put(`/menu/${editItem._id}`, payload);
+      toast.success('Menu item updated');
+      setEditItem(null);
+    } else {
+      const response = await API.post('/menu', payload);
+      console.log('Response:', response.data);
+      toast.success('Menu item added');
     }
-  };
+    
+    setForm({
+      name: '',
+      description: '',
+      price: '',
+      category: '',
+      available: true,
+      imageUrl: '',
+    });
+    
+    fetchMenu();
+  } catch (e) {
+    console.error('Full error object:', e);
+    console.error('Error response data:', e.response?.data);
+    console.error('Error status:', e.response?.status);
+    
+    let errorMessage = 'Failed to save menu item';
+    
+    if (e.response?.data?.error) {
+      errorMessage = e.response.data.error;
+    } else if (e.response?.data?.message) {
+      errorMessage = e.response.data.message;
+    }
+    
+    toast.error(errorMessage);
+  }
+};
 
   const startEdit = (item) => {
     setEditItem(item);

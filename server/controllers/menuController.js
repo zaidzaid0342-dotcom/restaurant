@@ -13,37 +13,82 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, description, price, category, imageUrl } = req.body;
+    console.log('=== CREATE MENU ITEM START ===');
+    console.log('Raw request body:', JSON.stringify(req.body, null, 2));
     
-    // Validate required fields
+    // Get all fields directly from req.body
+    const name = req.body.name;
+    const description = req.body.description;
+    const price = req.body.price;
+    const category = req.body.category;
+    const imageUrl = req.body.imageUrl;
+    const available = req.body.available;
+    
+    console.log('Extracted fields:', { name, description, price, category, imageUrl, available });
+    
+    // Basic validation
     if (!name || !price) {
-      return res.status(400).json({ message: 'Name and price are required' });
+      return res.status(400).json({ 
+        message: 'Name and price are required',
+        received: { name, price }
+      });
     }
     
-    const item = new MenuItem({
-      name,
-      description,
-      price,
-      category,
-      available,
-      imageUrl: imageUrl || null
-    });
+    // Convert price to number
+    const numericPrice = Number(price);
+    if (isNaN(numericPrice)) {
+      return res.status(400).json({ 
+        message: 'Price must be a valid number',
+        received: price
+      });
+    }
     
-    await item.save();
-    res.status(201).json(item);
+    // Create the item with explicit values
+    const itemData = {
+      name: name,
+      description: description || '',
+      price: numericPrice,
+      category: category || '',
+      available: available === true || available === 'true' || available === undefined,
+      imageUrl: imageUrl || null
+    };
+    
+    console.log('Item data to save:', itemData);
+    
+    const item = new MenuItem(itemData);
+    const savedItem = await item.save();
+    
+    console.log('Item saved successfully:', savedItem);
+    
+    res.status(201).json(savedItem);
+    console.log('=== CREATE MENU ITEM SUCCESS ===');
   } catch (error) {
-    console.error('Error creating menu item:', error);
-    res.status(500).json({ message: 'Failed to create menu item' });
+    console.error('=== CREATE MENU ITEM ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error name:', error.name);
+    console.error('Error stack:', error.stack);
+    
+    // Send detailed error in response
+    res.status(500).json({ 
+      message: 'Failed to create menu item',
+      error: error.message,
+      name: error.name,
+      stack: error.stack,
+      receivedBody: req.body
+    });
   }
 };
 
 exports.update = async (req, res) => {
   try {
-    const { name, description, price, category, imageUrl,available } = req.body;
+    const { name, description, price, category, imageUrl, available } = req.body;
     
-    const updateData = { name, description, price, category };
+    const updateData = { name, description, category, available };
     
-    // Only update imageUrl if it's provided
+    if (price !== undefined) {
+      updateData.price = Number(price);
+    }
+    
     if (imageUrl !== undefined) {
       updateData.imageUrl = imageUrl;
     }
