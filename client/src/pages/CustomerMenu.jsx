@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { motion } from 'framer-motion';
-import { FiRefreshCw, FiShoppingCart, FiSearch, FiLayers, FiAlertTriangle } from 'react-icons/fi';
+import { FiRefreshCw, FiShoppingCart, FiSearch, FiLayers, FiAlertTriangle, FiWifi } from 'react-icons/fi';
 // Assuming '../api' is a configured axios instance or similar utility
 import API from '../api';
 
@@ -96,6 +96,7 @@ export default function CustomerMenu() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [networkError, setNetworkError] = useState(false);
 
   /**
    * Processes the fetched menu data: sets items and extracts/sets unique categories.
@@ -116,12 +117,18 @@ export default function CustomerMenu() {
    * @param {boolean} isManual - True if triggered by a user's refresh button click.
    */
   const fetchMenu = useCallback(async (isManual = false) => {
-    if (isManual) setIsRefreshing(true);
+    if (isManual) {
+      setIsRefreshing(true);
+      setNetworkError(false);
+    }
 
     try {
       // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        if (!isManual) setNetworkError(true);
+      }, 8000); // 8 second timeout
 
       const res = await API.get('/menu', { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -145,6 +152,7 @@ export default function CustomerMenu() {
 
       // Update last refresh time
       setLastUpdated(new Date());
+      setNetworkError(false);
 
       if (isManual) {
         toast.success('Menu refreshed successfully!', {
@@ -160,11 +168,15 @@ export default function CustomerMenu() {
     } catch (e) {
       console.error("❌ Fetch menu failed:", e);
       if (e.name === 'AbortError') {
+        setNetworkError(true);
         if (isManual) {
           toast.error('Request timed out. Please check your connection.');
         }
-      } else if (isManual) {
-        toast.error('Failed to refresh menu. Server error.');
+      } else {
+        setNetworkError(true);
+        if (isManual) {
+          toast.error('Failed to refresh menu. Server error.');
+        }
       }
     } finally {
       setIsLoading(false);
@@ -470,6 +482,30 @@ export default function CustomerMenu() {
                   </div>
                 </motion.div>
               ))
+            ) : networkError ? (
+              // Network Error / Slow Network
+              <motion.div
+                className="col-span-full py-20 text-center bg-white rounded-2xl shadow-xl border border-slate-100 my-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-50 mb-6 border-4 border-amber-100 shadow-inner">
+                  <FiWifi className="h-10 w-10 text-amber-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-800 mb-2">Slow network connection</h3>
+                <p className="text-slate-600 max-w-md mx-auto mb-6">
+                  We're having trouble loading the menu due to a slow network. Please check your connection and try again.
+                </p>
+                <button
+                  onClick={() => fetchMenu(true)}
+                  disabled={isRefreshing}
+                  className="px-6 py-3 bg-amber-500 text-slate-900 rounded-xl hover:bg-amber-600 transition-colors font-bold shadow-md flex items-center justify-center mx-auto"
+                >
+                  <FiRefreshCw className={`h-5 w-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh to Load Menu'}
+                </button>
+              </motion.div>
             ) : (
               // No Results Found
               <motion.div
