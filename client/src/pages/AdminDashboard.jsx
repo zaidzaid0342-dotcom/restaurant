@@ -653,7 +653,7 @@ export default function AdminDashboard() {
                                         <FiCoffee className="text-slate-400 mr-2" />
                                         <span className="font-medium">Table {order.tableNumber}</span>
                                       </div>
-                                      {order.whatsappNumber && (
+                                      {/* {order.whatsappNumber && (
                                         <div className="flex items-center mt-1 text-green-600">
                                           <FaWhatsapp className="mr-1" />
                                           <a 
@@ -665,7 +665,7 @@ export default function AdminDashboard() {
                                             {order.whatsappNumber}
                                           </a>
                                         </div>
-                                      )}
+                                      )} */}
                                     </div>
                                   ) : (
                                     <div>
