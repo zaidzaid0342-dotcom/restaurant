@@ -15,7 +15,7 @@ exports.register = async (req, res) => {
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
     res.json({ token, user: { id: user._id, email: user.email, role: user.role } });
   } catch (err) {
-    console.error(err);
+    // console.error(err);
     res.status(500).send('Server error');
   }
 };
@@ -31,7 +31,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
     res.json({ token, user: { id: user._id, email: user.email, role: user.role } });
   } catch (err) {
-    console.error(err);
+    // console.error(err);
     res.status(500).send('Server error');
   }
 };

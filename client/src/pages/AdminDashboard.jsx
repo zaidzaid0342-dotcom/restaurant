@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import API from '../api';
 import toast, { Toaster } from 'react-hot-toast';
 import {
@@ -22,6 +22,8 @@ import {
   FiChevronDown,
   FiChevronUp,
   FiStar,
+  FiBarChart2,
+  FiPieChart,
 } from 'react-icons/fi';
 import { FaWhatsapp } from "react-icons/fa";
 
@@ -54,11 +56,10 @@ export default function AdminDashboard() {
   const fetchOrders = async () => {
     try {
       const res = await API.get('/orders');
-      // Sort orders by createdAt in descending order (newest first)
       const sortedOrders = [...res.data].sort((a, b) => {
         const dateA = new Date(a.createdAt);
         const dateB = new Date(b.createdAt);
-        return dateB - dateA; // Most recent first
+        return dateB - dateA;
       });
       setOrders(sortedOrders);
     } catch (e) {
@@ -89,57 +90,70 @@ export default function AdminDashboard() {
   const totalIncome = orders
     .reduce((sum, o) => sum + o.total, 0);
 
-  const submitMenu = async (e) => {
-  e.preventDefault();
-  
-  try {
-    const payload = {
-      name: form.name,
-      description: form.description,
-      price: Number(form.price),
-      category: form.category,
-      available: form.available,
-      imageUrl: form.imageUrl || null,
-    };
+  // Calculate most popular menu items
+  const popularItems = useMemo(() => {
+    const itemCounts = {};
     
-    console.log('Sending payload:', JSON.stringify(payload, null, 2));
-    
-    if (editItem) {
-      await API.put(`/menu/${editItem._id}`, payload);
-      toast.success('Menu item updated');
-      setEditItem(null);
-    } else {
-      const response = await API.post('/menu', payload);
-      console.log('Response:', response.data);
-      toast.success('Menu item added');
-    }
-    
-    setForm({
-      name: '',
-      description: '',
-      price: '',
-      category: '',
-      available: true,
-      imageUrl: '',
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        if (itemCounts[item.name]) {
+          itemCounts[item.name] += item.qty;
+        } else {
+          itemCounts[item.name] = item.qty;
+        }
+      });
     });
+
+    return Object.keys(itemCounts)
+      .map(name => ({ name, count: itemCounts[name] }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5); // Top 5 items
+  }, [orders]);
+
+  const submitMenu = async (e) => {
+    e.preventDefault();
     
-    fetchMenu();
-  } catch (e) {
-    console.error('Full error object:', e);
-    console.error('Error response data:', e.response?.data);
-    console.error('Error status:', e.response?.status);
-    
-    let errorMessage = 'Failed to save menu item';
-    
-    if (e.response?.data?.error) {
-      errorMessage = e.response.data.error;
-    } else if (e.response?.data?.message) {
-      errorMessage = e.response.data.message;
+    try {
+      const payload = {
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
+        category: form.category,
+        available: form.available,
+        imageUrl: form.imageUrl || null,
+      };
+      
+      if (editItem) {
+        await API.put(`/menu/${editItem._id}`, payload);
+        toast.success('Menu item updated');
+        setEditItem(null);
+      } else {
+        const response = await API.post('/menu', payload);
+        toast.success('Menu item added');
+      }
+      
+      setForm({
+        name: '',
+        description: '',
+        price: '',
+        category: '',
+        available: true,
+        imageUrl: '',
+      });
+      
+      fetchMenu();
+    } catch (e) {
+      let errorMessage = 'Failed to save menu item';
+      
+      if (e.response?.data?.error) {
+        errorMessage = e.response.data.error;
+      } else if (e.response?.data?.message) {
+        errorMessage = e.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     }
-    
-    toast.error(errorMessage);
-  }
-};
+  };
 
   const startEdit = (item) => {
     setEditItem(item);
@@ -372,6 +386,17 @@ export default function AdminDashboard() {
               >
                 Order Management
               </button>
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`px-6 py-4 font-medium text-sm transition-colors whitespace-nowrap flex items-center ${
+                  activeTab === 'analytics'
+                    ? 'text-slate-800 border-b-2 border-slate-800'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <FiPieChart className="mr-2" />
+                Analytics
+              </button>
             </div>
             <div className="ml-auto px-4 py-3 flex items-center">
               <button
@@ -558,7 +583,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'orders' ? (
               // Orders Section
               <div>
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -653,19 +678,6 @@ export default function AdminDashboard() {
                                         <FiCoffee className="text-slate-400 mr-2" />
                                         <span className="font-medium">Table {order.tableNumber}</span>
                                       </div>
-                                      {/* {order.whatsappNumber && (
-                                        <div className="flex items-center mt-1 text-green-600">
-                                          <FaWhatsapp className="mr-1" />
-                                          <a 
-                                            href={`https://wa.me/${order.whatsappNumber.replace(/\D/g, '')}`} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="hover:underline"
-                                          >
-                                            {order.whatsappNumber}
-                                          </a>
-                                        </div>
-                                      )} */}
                                     </div>
                                   ) : (
                                     <div>
@@ -834,6 +846,111 @@ export default function AdminDashboard() {
                         )}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Analytics Section
+              <div>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Restaurant Analytics</h2>
+                  <p className="text-slate-600">Insights about your restaurant's performance and popular items</p>
+                </div>
+
+                {/* Popular Items Section */}
+                <div className="mb-10">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-slate-900 flex items-center">
+                      <FiBarChart2 className="mr-2 text-indigo-600" />
+                      Most Popular Items
+                    </h3>
+                    <span className="text-sm text-slate-500">Based on order frequency</span>
+                  </div>
+                  
+                  {popularItems.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                      {popularItems.map((item, index) => (
+                        <div 
+                          key={index} 
+                          className="bg-white rounded-2xl border border-slate-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden"
+                        >
+                          <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-2xl">
+                            #{index + 1}
+                          </div>
+                          
+                          <div className="mb-4">
+                            <h4 className="font-bold text-lg text-slate-900 truncate">{item.name}</h4>
+                          </div>
+                          
+                          <div className="flex items-end justify-between">
+                            <div>
+                              <p className="text-3xl font-bold text-indigo-700">{item.count}</p>
+                              <p className="text-sm text-slate-500">orders</p>
+                            </div>
+                            
+                            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
+                              <FiStar className="text-indigo-600 w-8 h-8" />
+                            </div>
+                          </div>
+                          
+                          <div className="mt-4 w-full bg-slate-200 rounded-full h-2">
+                            <div 
+                              className="bg-indigo-600 h-2 rounded-full transition-all duration-1000" 
+                              style={{ width: `${(item.count / popularItems[0].count) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-lg">
+                      <FiBarChart2 className="mx-auto h-12 w-12 text-slate-400" />
+                      <h3 className="mt-2 text-lg font-medium text-slate-900">No order data yet</h3>
+                      <p className="mt-1 text-slate-500">Popular items will appear here once customers start ordering.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Analytics Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-gradient-to-br from-indigo-700 to-indigo-800 rounded-2xl p-6 text-white shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-indigo-200 text-sm font-medium">Average Order Value</p>
+                        <p className="text-3xl font-bold mt-1">₹{orders.length > 0 ? (totalIncome / orders.length).toFixed(2) : '0.00'}</p>
+                      </div>
+                      <div className="bg-indigo-600/30 p-4 rounded-2xl">
+                        <FiDollarSign className="w-8 h-8" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-purple-700 to-purple-800 rounded-2xl p-6 text-white shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-200 text-sm font-medium">Dine-in Orders</p>
+                        <p className="text-3xl font-bold mt-1">
+                          {orders.filter(o => o.orderType === 'dine-in').length}
+                        </p>
+                      </div>
+                      <div className="bg-purple-600/30 p-4 rounded-2xl">
+                        <FiCoffee className="w-8 h-8" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-teal-700 to-teal-800 rounded-2xl p-6 text-white shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-teal-200 text-sm font-medium">Delivery Orders</p>
+                        <p className="text-3xl font-bold mt-1">
+                          {orders.filter(o => o.orderType === 'home-delivery').length}
+                        </p>
+                      </div>
+                      <div className="bg-teal-600/30 p-4 rounded-2xl">
+                        <FiHome className="w-8 h-8" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

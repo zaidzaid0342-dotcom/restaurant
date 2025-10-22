@@ -136,7 +136,7 @@ exports.getById = async (req, res) => {
 
     res.json(order);
   } catch (err) {
-    console.error(err);
+  //  console.error(err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 };
@@ -160,7 +160,7 @@ exports.getByWhatsappNumber = async (req, res) => {
     
     res.json(order);
   } catch (error) {
-    console.error('WhatsApp tracking error:', error);
+   // console.error('WhatsApp tracking error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -174,7 +174,7 @@ exports.getByTrackingId = async (req, res) => {
 
     res.json(order);
   } catch (err) {
-    console.error(err);
+   // console.error(err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 };

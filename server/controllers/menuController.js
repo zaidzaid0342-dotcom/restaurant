@@ -6,15 +6,15 @@ exports.list = async (req, res) => {
     const items = await MenuItem.find().sort({ createdAt: -1 });
     res.json(items);
   } catch (error) {
-    console.error('Error fetching menu items:', error);
+   // console.error('Error fetching menu items:', error);
     res.status(500).json({ message: 'Failed to fetch menu items' });
   }
 };
 
 exports.create = async (req, res) => {
   try {
-    console.log('=== CREATE MENU ITEM START ===');
-    console.log('Raw request body:', JSON.stringify(req.body, null, 2));
+    // console.log('=== CREATE MENU ITEM START ===');
+    // console.log('Raw request body:', JSON.stringify(req.body, null, 2));
     
     // Get all fields directly from req.body
     const name = req.body.name;
@@ -24,7 +24,7 @@ exports.create = async (req, res) => {
     const imageUrl = req.body.imageUrl;
     const available = req.body.available;
     
-    console.log('Extracted fields:', { name, description, price, category, imageUrl, available });
+   // console.log('Extracted fields:', { name, description, price, category, imageUrl, available });
     
     // Basic validation
     if (!name || !price) {
@@ -63,10 +63,10 @@ exports.create = async (req, res) => {
     res.status(201).json(savedItem);
     console.log('=== CREATE MENU ITEM SUCCESS ===');
   } catch (error) {
-    console.error('=== CREATE MENU ITEM ERROR ===');
-    console.error('Error message:', error.message);
-    console.error('Error name:', error.name);
-    console.error('Error stack:', error.stack);
+    // console.error('=== CREATE MENU ITEM ERROR ===');
+    // console.error('Error message:', error.message);
+    // console.error('Error name:', error.name);
+    // console.error('Error stack:', error.stack);
     
     // Send detailed error in response
     res.status(500).json({ 
@@ -105,7 +105,7 @@ exports.update = async (req, res) => {
     
     res.json(item);
   } catch (error) {
-    console.error('Error updating menu item:', error);
+    //console.error('Error updating menu item:', error);
     res.status(500).json({ message: 'Failed to update menu item' });
   }
 };
@@ -120,7 +120,7 @@ exports.remove = async (req, res) => {
     
     res.json({ message: 'Menu item deleted successfully' });
   } catch (error) {
-    console.error('Error deleting menu item:', error);
+    //console.error('Error deleting menu item:', error);
     res.status(500).json({ message: 'Failed to delete menu item' });
   }
 };
